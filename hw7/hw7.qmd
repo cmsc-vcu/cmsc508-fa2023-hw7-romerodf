@@ -1,7 +1,7 @@
 ---
 title: Homework 7 - Creating a resume database
-author: (your name goes here!)
-date: last-modified
+author: Dimayri Romero
+date: 11/20/2023
 format:
     html:
         theme: cosmo
@@ -10,11 +10,9 @@ format:
         code-copy: true
 ---
 
-(include a brief description of what is in this document)
+This document explores the resume database that is created from the ddl sql file. It contains a Crows-foot diagram to help visualize the resume database. Many blocks of python code are within this file to help retrieve tables and filter on certain critera to show specific queries from the database. 
 
-(Please clean up any comments that I included.  This is a scaffold document.)
-
-GITHUB URL:  <your URL goes here!>
+GITHUB URL:  <https://github.com/cmsc-vcu/cmsc508-fa2023-hw7-romerodf>
 
 ```{python}
 #| eval: true
@@ -92,25 +90,58 @@ except Exception as e:
 
 ## Overview and description
 
-(briefly describe the project and the database)
+This project consists of using DDL to build a resume database which captures the skills, employees, and roles within the company. The database will help find employees with specific skills and find any gaps in the skill sets of employees with certain roles.
 
 ## Crows-foot diagram
 
-(add a description of the diagram and what the reader is seeing.)
+The below is an entity-relationship diagram represented using mermaid syntax. The relationships between people, roles, and skills from the proposed database are shown. There are four entities: skills, people, roles, peopleskills, and people_roles; each have a relationship to at least one other entity. Both skills and people have a many to many relationship with peopleskills. Both people and roles have a many to many relationship with people_roles.
 
 ```{mermaid}
 %%| echo: false
 erDiagram
-    CUSTOMER ||--o{ ORDER : places
-    CUSTOMER }|..|{ DELIVERY-ADDRESS : uses
-    CUSTOMER{
-        int id
-        string first_name
-        string last_name
-    }
-    DELIVERY-ADDRESS {
-        int id
-    }
+    skills ||--o{ peopleskills : "M:N"
+    people ||--o{ peopleskills : "M:N"
+    people ||--o{ people_roles : "M:N"
+    roles ||--o{ people_roles : "M:N"
+
+skills {
+    primary_key id
+    VARCHAR name
+    VARCHAR description
+    VARCHAR tag
+    VARCHAR url
+    VARCHAR time_commitment
+    
+}
+people {
+    primary_key id
+    VARCHAR first_name
+    VARCHAR last_name
+    VARCHAR email
+    VARCHAR linkedin_url
+    VARCHAR headshot_url
+    VARCHAR discord_handle
+    VARCHAR brief_bio
+    DATE date_joined
+
+}
+peopleskills {
+    primary_key id 
+    foreign_key skills_id
+    foreign_key people_id
+    DATE primary_key
+}
+roles {
+    primary_key id 
+    VARCHAR name
+    int sort_priority
+}
+people_roles {
+    primary_key id
+    foreign_key people_id
+    foreign_key role_id
+    DATE date_role_acquired
+}
 ```
 
 ## Examples of data in the database
@@ -119,7 +150,7 @@ For the people, skills, and roles tables, provide a description of each table an
 
 ### People table
 
-The *people* table contains elements that describe ... 
+The *people* table contains elements that describe an individual's first and last name along with an identifier or primary key to uniquely identify them in the table. It also contains urls for the individual's linkedin and headshot.
 
 Below is a list of data in the *people* table.
 
@@ -142,7 +173,7 @@ df
 
 ### Skills table
 
-The *skills* table contains elements that describe ... 
+The *skills* table contains elements that describe some of the different kinds of skills that are possible. They have a unique identifier named 'id' along with the name and tag for each of them. The description gives more information about what the skill is.
 
 Below is a list of data in the *skills* table.
 
@@ -150,12 +181,23 @@ Below is a list of data in the *skills* table.
 #| echo: false
 #| eval: true
 
-## Add code to list roles table here
+sql = f"""
+select * from skills;
+"""
+
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ```
 
 ### Roles table
 
-The *roles* table contains elements that describe ... 
+The *roles* table contains elements that describe the roles that are currently within the company. It gives the name of each of the roles and a sort priority which will be used when sorting the roles.
 
 Below is a list of data in the *roles* table.
 
@@ -163,7 +205,18 @@ Below is a list of data in the *roles* table.
 #| echo: false
 #| eval: true
 
-## Add code to list roles table here
+sql = f"""
+select * from roles;
+"""
+
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
 ```
 
 
@@ -173,16 +226,12 @@ Let's explore the database!
 
 # List skill names, tags, and descriptions ordered by name
 
-(here a sample query)
-
+sample query
 ```{python}
 sql = f"""
 select * from people
 """
 ```
-
-
-(and here is a sample result from the query)
 
 ```{python}
 #| echo: false
@@ -201,29 +250,244 @@ df
 
 ### List people names and email addresses ordered by last_name
 
+```{python}
+sql = f"""
+SELECT 
+    people_first_name, 
+    people_last_name, 
+    email
+FROM 
+    people
+ORDER BY 
+    people_last_name;
+"""
+```
+```{python}
+#| echo: false
+#| eval: true
+
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List skill names of Person 1
 
+```{python}
+sql = f"""
+SELECT 
+    people_last_name, 
+    name tag
+FROM 
+    peopleskills a 
+    inner join people b on (a.people_id=b.people_id)
+    inner join skills c on (a.skills_id=c.id)
+WHERE
+    people_last_name='Person 1'
+ORDER BY 
+    name,
+    people_last_name;
+"""
+```
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List people names with Skill 6
 
+```{python}
+sql = f"""
+SELECT 
+    p.people_first_name,
+    p.people_last_name
+FROM 
+    people p
+JOIN
+    peopleskills ps ON p.people_id = ps.people_id
+WHERE
+    ps.skills_id = 6
+ORDER BY 
+    p.people_last_name;
+"""
+```
+
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List people with a DEVELOPER role
 
+```{python}
+sql = f"""
+SELECT 
+    p.people_first_name, p.people_last_name
+FROM 
+    people p
+JOIN 
+    peopleroles pr ON p.people_id = pr.people_id
+JOIN 
+    roles r ON pr.role_id = r.id
+WHERE 
+    r.name = 'Developer';
+"""
+```
+
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List names and email addresses of people without skills
 
+```{python}
+sql = f"""
+SELECT
+    p.people_first_name, p.people_last_name, p.email
+FROM 
+    people p
+LEFT JOIN 
+    peopleskills ps ON p.people_id = ps.people_id
+WHERE 
+    ps.people_id IS NULL;
+"""
+```
+
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List names and tags of unused skills
 
+```{python}
+sql = f"""
+SELECT s.name, s.tag
+FROM skills s
+LEFT JOIN peopleskills ps ON s.id = ps.skills_id
+WHERE ps.skills_id IS NULL;
+"""
+```
+
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List people names and skill names with the BOSS role
 
+```{python}
+sql = f"""
+SELECT 
+    p.people_first_name, 
+    p.people_last_name, 
+    s.name AS skill_name
+FROM 
+    people p
+JOIN 
+    peopleroles pr ON p.people_id = pr.people_id
+JOIN 
+    roles r ON pr.role_id = r.id
+LEFT JOIN 
+    peopleskills ps ON p.people_id = ps.people_id
+LEFT JOIN 
+    skills s ON ps.skills_id = s.id
+WHERE 
+    r.name = 'Boss';
+"""
+```
+
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ### List ids and names of unused roles
 
+```{python}
+sql = f"""
+SELECT r.id, r.name
+FROM roles r
+LEFT JOIN peopleroles pr ON r.id = pr.role_id
+WHERE pr.role_id IS NULL;
+"""
+```
+
+```{python}
+#| echo: false
+#| eval: true
+try:
+    df = pd.read_sql(sql,cnx)
+    df
+except Exception as e:
+    message = str(e)
+    print(f"An error occurred:\n\n{message}\n\nIgnoring and moving on.")
+    df = pd.DataFrame()
+df
+
+```
 
 ## Reflection
 
-(Write a paragraph expressing your thoughts, feelings, and insights about your experience with this assignment.  Pause and breath before writing - I'm trying to encourage critical thinking and self-awareness while allowing you to explore the connections between theory and practice. And yes, delete this paragraph.)
-
+Going into this assignment, it seemed slightly overwhelming considering the fact that I had to start using a newly learned language to construct a database. As I took things step by step I was able to understand each part of the process. It became easier to write queries, once I understood what kinds of keys and values each table had. At times I would go back and forth between my ddl and qmd file to make some changes in terms of how I was assigning my values and fix the tables that were not getting populated correctly at the time. Looking back at some of the lectures as well as the notes helped with better understanding this assignment. I believe I can now apply what I learned here to outside of the class.
